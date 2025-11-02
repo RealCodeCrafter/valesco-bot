@@ -15,68 +15,74 @@ export class BotService {
   private bot: Telegraf;
   private sessions = new Map<number, Session>();
 
-  private t = {
-    uz: {
-      welcome: `Valesco Lubricants
+ private t = {
+  uz: {
+    welcome: `🔥 *Valesco Lubricants* ga xush kelibsiz! 🔥
 
-www.valescooil.com
-www.exzap.uz
-1175
+🌍 Rasmiy saytlarimiz:
+🔗 [www.valescooil.com](http://www.valescooil.com)
+🔗 [www.exzap.uz](http://www.exzap.uz)
 
-Assalomu aleykum! Tilni tanlang:`,
-            chooseLang: "Tilni tanlang:",
-            enterName: "Ismingizni kiriting:",
-            enterSurname: "Familiyangizni kiriting:",
-            enterPhone: "Telefon raqamingizni yuboring:",
-            shareContact: "Kontaktni yuborish",
-            enterCode: `📣Hurmatli iste'molchi‼️
+📞 Qo‘llab-quvvatlash markazi: \`1175\`
+
+💬 Assalomu alaykum!
+Iltimos, quyidagi tillardan birini tanlang 👇`,
+    chooseLang: "Tilni tanlang:",
+    enterName: "Ismingizni kiriting:",
+    enterSurname: "Familiyangizni kiriting:",
+    enterPhone: "Telefon raqamingizni yuboring:",
+    shareContact: "Kontaktni yuborish",
+    enterCode: `📣Hurmatli iste'molchi‼️
 😎VALESCO brendining asl✅ mahsulotini sotib olib, siz sovg'ali🎉 aksiyada ishtirok etasiz‼️
 📲STIKER KODINI KIRITING:`,
-            validCode: `📣Hurmatli iste'molchi‼️
+    validCode: `📣Hurmatli iste'molchi‼️
 Siz 😎VALESCO brendining asl mahsulotini sotib oldingiz!
 🛍Ko'proq 😎VALESCO mahsulotlarini sotib oling va 😎VALESCO LUBRICANTS dan 🎁sovg'ali aksiyada qatnashing‼️
 ✅ Mahsulot haqida ko'proq ma'lumot olish uchun bizning saytimizga kiring ⬅️http://www.valescooil.com
 🤝Tanlaganingiz uchun rahmat!`,
-            invalidCode: `📣Hurmatli iste'molchi⚠️
+    invalidCode: `📣Hurmatli iste'molchi⚠️
 👎KOD YAROQSIZ!👎
 🛑Mahsulot soxta bo'lishi ehtimoli yuqori.🛑❓❓❓
 🙏Iltimos, 🔔bu holat haqida 📞1175 raqamiga xabar bering
 
 Yana bir bor kodni kiriting:`,
-            invalidPhone: "Telefon noto'g'ri. Masalan: +998901234567",
-            nameTooShort: "Ism juda qisqa",
-            surnameTooShort: "Familiya juda qisqa",
-    },
-    ru: {
-      welcome: `Valesco Lubricants
+    invalidPhone: "Telefon noto'g'ri. Masalan: +998901234567",
+    nameTooShort: "Ism juda qisqa",
+    surnameTooShort: "Familiya juda qisqa",
+  },
+  ru: {
+    welcome: `🔥 *Valesco Lubricants* — добро пожаловать! 🔥
 
-www.valescooil.com
-www.exzap.uz
-1175
+🌍 Наши официальные сайты:
+🔗 [www.valescooil.com](http://www.valescooil.com)
+🔗 [www.exzap.uz](http://www.exzap.uz)
 
-Здравствуйте! Выберите язык:`,
-      chooseLang: "Выберите язык:",
-      enterName: "Введите ваше имя:",
-      enterSurname: "Введите вашу фамилию:",
-      enterCode: `📣Уважаемый потребитель‼️
+📞 Служба поддержки: \`1175\`
+
+💬 Здравствуйте!
+Пожалуйста, выберите один из языков ниже 👇`,
+    chooseLang: "Выберите язык:",
+    enterName: "Введите ваше имя:",
+    enterSurname: "Введите вашу фамилию:",
+    enterCode: `📣Уважаемый потребитель‼️
 Купив оригинальный✅ продукт бренда 😎VALESCO Вы становитесь участником призовой🎉 акции‼️
 📲ВВЕДИТЕ КОД СО СТИКЕРА:`,
-            validCode: `📣Уважаемый потребитель‼️
+    validCode: `📣Уважаемый потребитель‼️
 Вы приобрели оригинальный продукт бренда 😎VALESCO!
 🛍Покупайте больше продуктов брэнда 😎VALESCO и участвуйте в 🎁призовой акции от 😎VALESCO LUBRICANTS‼️
 ✅ Для большей информации о продукции зайдите на наш сайт ⬅️http://www.valescooil.com
 🤝Благодарим за выбор!`,
-            invalidCode: `📣Уважаемый потребитель⚠️
+    invalidCode: `📣Уважаемый потребитель⚠️
 👎КОД НЕ ЯВЛЯЕТСЯ ДЕЙСТВИТЕЛЬНЫМ!👎
 🛑Высокая вероятность того, что продукт контрафактный.🛑❓❓❓
 🙏Пожалуйста, 🔔сообщите об этом случае по номеру 📞1175
 
 Введите код еще раз:`,
-      invalidPhone: "Неверный номер телефона. Пример: +998901234567",
-      nameTooShort: "Имя слишком короткое",
-      surnameTooShort: "Фамилия слишком короткая",
-    },
-  };
+    invalidPhone: "Неверный номер телефона. Пример: +998901234567",
+    nameTooShort: "Имя слишком короткое",
+    surnameTooShort: "Фамилия слишком короткая",
+  },
+};
 
   constructor(
     private userService: UserService,
