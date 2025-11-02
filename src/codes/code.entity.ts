@@ -1,5 +1,5 @@
-import { User } from 'src/users/user.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { User } from '../users/user.entity';
 
 @Entity('codes')
 export class Code {
@@ -12,9 +12,6 @@ export class Code {
   @Column({ default: false })
   used: boolean;
 
-  @Column({ nullable: true })
-  usedBy: number;
-
-  @ManyToOne(() => User, (user) => user.codes)
+  @ManyToOne(() => User, user => user.codes, { nullable: true })
   user: User;
 }

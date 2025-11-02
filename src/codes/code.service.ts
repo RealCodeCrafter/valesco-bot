@@ -53,7 +53,7 @@ export class CodeService implements OnModuleInit {
   }
 
   async markUsed(code: string, userId: number): Promise<void> {
-    await this.repo.update({ code }, { used: true, usedBy: userId });
+    await this.repo.update({ code }, { used: true, user: {id: userId} });
   }
 
   async findAll(): Promise<Code[]> {

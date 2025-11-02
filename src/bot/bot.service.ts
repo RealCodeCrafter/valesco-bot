@@ -64,6 +64,8 @@ Yana bir bor kodni kiriting:`,
     chooseLang: "Выберите язык:",
     enterName: "Введите ваше имя:",
     enterSurname: "Введите вашу фамилию:",
+    enterPhone: "Отправьте ваш номер телефона:",
+    shareContact: "Поделиться контактом",
     enterCode: `📣Уважаемый потребитель‼️
 Купив оригинальный✅ продукт бренда 😎VALESCO Вы становитесь участником призовой🎉 акции‼️
 📲ВВЕДИТЕ КОД СО СТИКЕРА:`,
@@ -184,16 +186,16 @@ Yana bir bor kodni kiriting:`,
         this.sessions.set(chatId, { ...session, step: 'surname' });
         await this.send(ctx, chatId, tr.enterSurname);
       } else if (s.step === 'surname') {
-        if (text.length < 2) return ctx.reply(tr.surnameTooShort);
-        await this.userService.upsert({ chatId, surname: text });
-        this.sessions.set(chatId, { ...session, step: 'phone' });
-        await this.send(ctx, chatId, this.t.uz.enterPhone, {
-          reply_markup: {
-            keyboard: [[{ text: this.t.uz.shareContact, request_contact: true }]],
-            resize_keyboard: true,
-            one_time_keyboard: true,
-          },
-        });
+  if (text.length < 2) return ctx.reply(tr.surnameTooShort);
+  await this.userService.upsert({ chatId, surname: text });
+  this.sessions.set(chatId, { ...session, step: 'phone' });
+  await this.send(ctx, chatId, tr.enterPhone, {
+    reply_markup: {
+      keyboard: [[{ text: tr.shareContact, request_contact: true }]],
+      resize_keyboard: true,
+      one_time_keyboard: true,
+    },
+  });
       } else if (s.step === 'phone') {
         const phone = text;
         const clean = phone.replace(/\D/g, '');
