@@ -108,39 +108,40 @@ Ramziddin, [11/3/2025 3:34 PM]
     return msg;
   }
 
-  private setup() {
-    this.bot.start(async (ctx) => {
-      const chatId = ctx.from!.id;
-      this.sessions.delete(chatId);
-      const user = await this.userService.findByChatId(chatId);
+      private setup() {
+  this.bot.start(async (ctx) => {
+    const chatId = ctx.from!.id;
+    this.sessions.delete(chatId);
+    const user = await this.userService.findByChatId(chatId);
 
-      if (user?.registered) {
-        this.sessions.set(chatId, { step: 'select_lang', lang: user.language as 'tm' | 'ru' });
-        await this.send(ctx, chatId, this.t[user.language as 'tm' | 'ru'].chooseLang, {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "Türkmençe", callback_data: 'lang_tm' },
-                { text: "Русский", callback_data: 'lang_ru' }
-              ]
-            ]
-          },
-        });
-      } else {
-        this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
-        await ctx.replyWithHTML(this.t.tm.welcome, {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "Türkmençe", callback_data: 'lang_tm' },
-                { text: "Русский", callback_data: 'lang_ru' }
-              ]
-            ]
-          },
-        });
-      }
-    });
+    if (user?.registered) {
+      const lang = (user.language === 'tm' || user.language === 'ru') ? user.language : 'tm';
+      this.sessions.set(chatId, { step: 'select_lang', lang });
 
+      await this.send(ctx, chatId, this.t[lang].chooseLang, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "Türkmençe", callback_data: 'lang_tm' },
+              { text: "Русский", callback_data: 'lang_ru' }
+            ]
+          ]
+        },
+      });
+    } else {
+      this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
+      await ctx.replyWithHTML(this.t.tm.welcome, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "Türkmençe", callback_data: 'lang_tm' },
+              { text: "Русский", callback_data: 'lang_ru' }
+            ]
+          ]
+        },
+      });
+    }
+  });
     this.bot.action(/lang_(.+)/, async (ctx) => {
       const chatId = ctx.from!.id;
       const lang = ctx.match![1] as 'tm' | 'ru';
