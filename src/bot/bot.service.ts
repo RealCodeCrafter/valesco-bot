@@ -26,6 +26,9 @@ export class BotService {
       enterName: "✍️ Adyňyzy giriziň:",
       enterPhone: "📱 Telefon belgiňizi iberiň:",
       shareContact: "📲 Kontakt paýlaşmak",
+      enterCode: `🎉 Hormatly sarp ediji‼️
+✅ VALESCO LUBRICANTS brendiniň asyl önümini satyn alyp, siz 🎁 sowgatly aksiýada gatnaşýarsyňyz‼️
+🔢 STIKER KODYNY GIRIZIŇ:`,
       validCode: `✅ Hormatly sarp ediji‼️
 🎊 Siz VALESCO LUBRICANTS brendiniň asyl önümini satyn aldyňyz!
 🛍 Has köp VALESCO LUBRICANTS önümlerini satyn alyň we 🎁 sowgatly aksiýada gatnaşyň‼️
@@ -37,10 +40,9 @@ export class BotService {
 🙏 Haýyş edýäris, bu ýagdaý barada 📞 +99363883444 belgisine habar beriň
 
 🔄 Kody ýene bir gezek giriziň:`,
-      invalidPhone: "❌ Telefon nädogry. Mysal: +99361234567",
+      invalidPhone: "❌ Telefon nädogry. Rakam giriziň",
       nameTooShort: "⚠️ At gaty gysga",
     },
-
     ru: {
       welcome: `🏆 TMValesco
 
@@ -52,6 +54,9 @@ export class BotService {
       enterName: "✍️ Введите ваше имя:",
       enterPhone: "📱 Отправьте ваш номер телефона:",
       shareContact: "📲 Поделиться контактом",
+      enterCode: `🎉 Уважаемый потребитель‼️
+✅ Купив оригинальный продукт бренда VALESCO LUBRICANTS Вы становитесь участником 🎁 призовой акции‼️
+🔢 ВВЕДИТЕ КОД СО СТИКЕРА:`,
       validCode: `✅ Уважаемый потребитель‼️
 🎊 Вы приобрели оригинальный продукт бренда VALESCO LUBRICANTS!
 🛍 Покупайте больше продуктов брэнда VALESCO LUBRICANTS и участвуйте в 🎁 призовой акции‼️
@@ -63,7 +68,7 @@ export class BotService {
 🙏 Пожалуйста, сообщите об этом случае по номеру 📞 +99363883444
 
 🔄 Введите код еще раз:`,
-      invalidPhone: "❌ Неверный номер телефона. Пример: +99361234567",
+      invalidPhone: "❌ Неверный номер телефона. Введите только цифры",
       nameTooShort: "⚠️ Имя слишком короткое",
     },
   };
@@ -99,29 +104,6 @@ export class BotService {
     return msg;
   }
 
-  // 🔹 Qo‘zg‘aluvchi emojili xabar yuboruvchi funksiya
-  private async sendAnimatedText(ctx: Context, chatId: number, text: string) {
-    const msg = await ctx.telegram.sendMessage(chatId, text, {
-      entities: [
-        { offset: 0, length: 2, type: 'custom_emoji', custom_emoji_id: '5201979228303668332' },
-        { offset: 4, length: 2, type: 'custom_emoji', custom_emoji_id: '5206230361163445465' },
-        { offset: 6, length: 2, type: 'custom_emoji', custom_emoji_id: '5208576512818689138' },
-        { offset: 8, length: 2, type: 'custom_emoji', custom_emoji_id: '5206189266916357406' },
-        { offset: 10, length: 2, type: 'custom_emoji', custom_emoji_id: '5206211454717409052' },
-        { offset: 12, length: 2, type: 'custom_emoji', custom_emoji_id: '5206421092071126420' },
-        { offset: 14, length: 2, type: 'custom_emoji', custom_emoji_id: '5206720219363424618' },
-        { offset: 18, length: 2, type: 'custom_emoji', custom_emoji_id: '5462950031143216831' },
-        { offset: 42, length: 2, type: 'custom_emoji', custom_emoji_id: '5440660757194744323' },
-        { offset: 63, length: 1, type: 'custom_emoji', custom_emoji_id: '5427009714745517609' },
-        { offset: 80, length: 2, type: 'custom_emoji', custom_emoji_id: '5201921903375169816' },
-        { offset: 125, length: 2, type: 'custom_emoji', custom_emoji_id: '5436040291507247633' },
-        { offset: 133, length: 2, type: 'custom_emoji', custom_emoji_id: '5440660757194744323' },
-        { offset: 137, length: 2, type: 'custom_emoji', custom_emoji_id: '5406809207947142040' },
-      ],
-    });
-    return msg;
-  }
-
   private setup() {
     this.bot.start(async (ctx) => {
       const chatId = ctx.from!.id;
@@ -131,7 +113,6 @@ export class BotService {
       if (user?.registered) {
         const lang = (user.language === 'tm' || user.language === 'ru') ? user.language : 'tm';
         this.sessions.set(chatId, { step: 'select_lang', lang });
-
         await this.send(ctx, chatId, this.t[lang].chooseLang, {
           reply_markup: {
             inline_keyboard: [
@@ -161,20 +142,12 @@ export class BotService {
       const chatId = ctx.from!.id;
       const lang = ctx.match![1] as 'tm' | 'ru';
       const s = this.sessions.get(chatId);
-
       await ctx.answerCbQuery();
 
       if (s?.step === 'select_lang') {
         await this.userService.upsert({ chatId, language: lang });
         this.sessions.set(chatId, { ...s, step: 'code', lang });
-
-        // 🔹 Animatsiyali enterCode xabar
-        const animText =
-          lang === 'tm'
-            ? `😎  😎😎😎😎😎😎\n\n📣 Hormatly sarp ediji‼️\n😎 VALESCO LUBRICANTS\n✅ Brendiň asyl önümini satyn alyp, siz 🎉 sowgatly aksiýada gatnaşýarsyňyz‼️\n\n📲 STIKER KODYNY GIRIZIŇ`
-            : `😎  😎😎😎😎😎😎\n\n📣 Уважаемый потребитель‼️\n😎 VALESCO LUBRICANTS\n✅ Купив оригинальный продукт бренда, Вы становитесь участником 🎉 призовой акции‼️\n\n📲 ВВЕДИТЕ КОД СО СТИКЕРА`;
-
-        await this.sendAnimatedText(ctx, chatId, animText);
+        await this.send(ctx, chatId, this.t[lang].enterCode);
       } else {
         this.sessions.set(chatId, { ...s, step: 'name', lang });
         await this.send(ctx, chatId, this.t[lang].enterName);
@@ -185,10 +158,8 @@ export class BotService {
       const chatId = ctx.from!.id;
       const text = ctx.message?.text?.trim();
       if (!text) return;
-
       const s = this.sessions.get(chatId);
       if (!s) return;
-
       const lang = s.lang;
       const tr = this.t[lang];
       const session = { ...s, userMsg: ctx.message!.message_id };
@@ -206,29 +177,19 @@ export class BotService {
           },
         });
       } else if (s.step === 'phone') {
-        const phone = text;
-        const clean = phone.replace(/\D/g, '');
-        if (clean.length !== 11 || !clean.startsWith('993')) {
+        const phone = text.replace(/\D/g, '');
+        if (!/^\d+$/.test(phone) || phone.length < 5) {
           return ctx.reply(tr.invalidPhone);
         }
-        const formatted = '+' + clean;
+        const formatted = '+' + phone;
         await this.userService.upsert({ chatId, phone: formatted, registered: true });
         this.sessions.set(chatId, { ...session, step: 'code' });
-
-        // 🔹 EnterCode bosqichida animatsiyali text
-        const animText =
-          lang === 'tm'
-            ? `😎  😎😎😎😎😎😎\n\n📣 Hormatly sarp ediji‼️\n😎 VALESCO LUBRICANTS\n✅ Brendiň asyl önümini satyn alyp, siz 🎉 sowgatly aksiýada gatnaşýarsyňyz‼️\n\n📲 STIKER KODYNY GIRIZIŇ`
-            : `😎  😎😎😎😎😎😎\n\n📣 Уважаемый потребитель‼️\n😎 VALESCO LUBRICANTS\n✅ Купив оригинальный продукт бренда, Вы становитесь участником 🎉 призовой акции‼️\n\n📲 ВВЕДИТЕ КОД СО СТИКЕРА`;
-
-        await this.sendAnimatedText(ctx, chatId, animText);
+        await this.send(ctx, chatId, tr.enterCode);
       } else if (s.step === 'code') {
         const user = await this.userService.findByChatId(chatId);
         if (!user?.registered) return;
-
         const code = text.toUpperCase().trim();
         const valid = await this.codeService.isValid(code);
-
         if (valid && user) {
           await this.codeService.markUsed(code, user.id);
           await this.send(ctx, chatId, tr.validCode);
@@ -244,21 +205,14 @@ export class BotService {
       const chatId = ctx.from!.id;
       const s = this.sessions.get(chatId);
       if (s?.step === 'phone' && ctx.message?.contact) {
-        let phone = ctx.message.contact.phone_number;
-        const clean = phone.replace(/\D/g, '');
-        if (clean.length !== 11 || !clean.startsWith('993')) {
+        let phone = ctx.message.contact.phone_number.replace(/\D/g, '');
+        if (!/^\d+$/.test(phone) || phone.length < 5) {
           return ctx.reply(this.t[s.lang].invalidPhone);
         }
-        phone = '+' + clean;
+        phone = '+' + phone;
         await this.userService.upsert({ chatId, phone, registered: true });
         this.sessions.set(chatId, { ...s, step: 'code' });
-
-        const animText =
-          s.lang === 'tm'
-            ? `😎  😎😎😎😎😎😎\n\n📣 Hormatly sarp ediji‼️\n😎 VALESCO LUBRICANTS\n✅ Brendiň asyl önümini satyn alyp, siz 🎉 sowgatly aksiýada gatnaşýarsyňyz‼️\n\n📲 STIKER KODYNY GIRIZIŇ`
-            : `😎  😎😎😎😎😎😎\n\n📣 Уважаемый потребитель‼️\n😎 VALESCO LUBRICANTS\n✅ Купив оригинальный продукт бренда, Вы становитесь участником 🎉 призовой акции‼️\n\n📲 ВВЕДИТЕ КОД СО СТИКЕРА`;
-
-        await this.sendAnimatedText(ctx, chatId, animText);
+        await this.send(ctx, chatId, this.t[s.lang].enterCode);
       }
     });
 
