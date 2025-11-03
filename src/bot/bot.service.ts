@@ -15,67 +15,64 @@ export class BotService {
   private bot: Telegraf;
   private sessions = new Map<number, Session>();
   private t = {
-        tm: {
-            welcome: `🏆 TMValesco
+    tm: {
+      welcome: `🏆 TMValesco
 
 🌐 www.valescooil.com
 📞 +99363883444
 
 👋 Salam! Dili saýlaň:`,
-            chooseLang: "🌍 Dili saýlaň:",
-            enterName: "✍️ Adyňyzy giriziň:",
-            enterPhone: "📱 Telefon belgiňizi iberiň:",
-            shareContact: "📲 Kontakt paýlaşmak",
-            enterCode: `🎉 Hormatly sarp ediji‼️
+      chooseLang: "🌍 Dili saýlaň:",
+      enterName: "✍️ Adyňyzy giriziň:",
+      enterPhone: "📱 Telefon belgiňizi iberiň:",
+      shareContact: "📲 Kontakt paýlaşmak",
+      enterCode: `🎉 Hormatly sarp ediji‼️
 ✅ VALESCO LUBRICANTS brendiniň asyl önümini satyn alyp, siz 🎁 sowgatly aksiýada gatnaşýarsyňyz‼️
 🔢 STIKER KODYNY GIRIZIŇ:`,
-            validCode: `✅ Hormatly sarp ediji‼️
+      validCode: `✅ Hormatly sarp ediji‼️
 🎊 Siz VALESCO LUBRICANTS brendiniň asyl önümini satyn aldyňyz!
 🛍 Has köp VALESCO LUBRICANTS önümlerini satyn alyň we 🎁 sowgatly aksiýada gatnaşyň‼️
 ℹ️ Önüm hakda has giňişleýin maglumat almak üçin web sahypamyza giriň 👉 http://www.valescooil.com
 🤝 Saýlanyňyz üçin sag boluň!`,
-            invalidCode: `⚠️ Hormatly sarp ediji
+      invalidCode: `⚠️ Hormatly sarp ediji
 ❌ KOD NÄDOGRY! ❌
 🚫 Önümiň galp bolmak ähtimallygy ýokary 🚫❓
 🙏 Haýyş edýäris, bu ýagdaý barada 📞 +99363883444 belgisine habar beriň
 
 🔄 Kody ýene bir gezek giriziň:`,
-            invalidPhone: "❌ Telefon nädogry. Mysal: +99361234567",
-            nameTooShort: "⚠️ At gaty gysga",
-        },
+      invalidPhone: "❌ Telefon nädogry. Mysal: +99361234567",
+      nameTooShort: "⚠️ At gaty gysga",
+    },
 
-        ru: {
-            welcome: `🏆 TMValesco
+    ru: {
+      welcome: `🏆 TMValesco
 
 🌐 www.valescooil.com
 📞 +99363883444
 
 👋 Здравствуйте! Выберите язык:`,
-            chooseLang: "🌍 Выберите язык:",
-            enterName: "✍️ Введите ваше имя:",
-            enterPhone: "📱 Отправьте ваш номер телефона:",
-            shareContact: "📲 Поделиться контактом",
-            enterCode: `🎉 Уважаемый потребитель‼️
+      chooseLang: "🌍 Выберите язык:",
+      enterName: "✍️ Введите ваше имя:",
+      enterPhone: "📱 Отправьте ваш номер телефона:",
+      shareContact: "📲 Поделиться контактом",
+      enterCode: `🎉 Уважаемый потребитель‼️
 ✅ Купив оригинальный продукт бренда VALESCO LUBRICANTS Вы становитесь участником 🎁 призовой акции‼️
 🔢 ВВЕДИТЕ КОД СО СТИКЕРА:`,
-            validCode: `✅ Уважаемый потребитель‼️
+      validCode: `✅ Уважаемый потребитель‼️
 🎊 Вы приобрели оригинальный продукт бренда VALESCO LUBRICANTS!
 🛍 Покупайте больше продуктов брэнда VALESCO LUBRICANTS и участвуйте в 🎁 призовой акции‼️
 ℹ️ Для большей информации о продукции зайдите на наш сайт 👉 http://www.valescooil.com
 🤝 Благодарим за выбор!`,
-            invalidCode: `⚠️ Уважаемый потребитель
+      invalidCode: `⚠️ Уважаемый потребитель
 ❌ КОД НЕ ЯВЛЯЕТСЯ ДЕЙСТВИТЕЛЬНЫМ! ❌
 🚫 Высокая вероятность того, что продукт контрафактный 🚫❓
 🙏 Пожалуйста, сообщите об этом случае по номеру 📞 +99363883444
 
-Ramziddin, [11/3/2025 3:34 PM]
-
-
 🔄 Введите код еще раз:`,
-            invalidPhone: "❌ Неверный номер телефона. Пример: +99361234567",
-            nameTooShort: "⚠️ Имя слишком короткое",
-        },
-    };
+      invalidPhone: "❌ Неверный номер телефона. Пример: +99361234567",
+      nameTooShort: "⚠️ Имя слишком короткое",
+    },
+  };
 
   constructor(
     private userService: UserService,
@@ -108,40 +105,41 @@ Ramziddin, [11/3/2025 3:34 PM]
     return msg;
   }
 
-      private setup() {
-  this.bot.start(async (ctx) => {
-    const chatId = ctx.from!.id;
-    this.sessions.delete(chatId);
-    const user = await this.userService.findByChatId(chatId);
+  private setup() {
+    this.bot.start(async (ctx) => {
+      const chatId = ctx.from!.id;
+      this.sessions.delete(chatId);
+      const user = await this.userService.findByChatId(chatId);
 
-    if (user?.registered) {
-      const lang = (user.language === 'tm' || user.language === 'ru') ? user.language : 'tm';
-      this.sessions.set(chatId, { step: 'select_lang', lang });
+      if (user?.registered) {
+        const lang = (user.language === 'tm' || user.language === 'ru') ? user.language : 'tm';
+        this.sessions.set(chatId, { step: 'select_lang', lang });
 
-      await this.send(ctx, chatId, this.t[lang].chooseLang, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "Türkmençe", callback_data: 'lang_tm' },
-              { text: "Русский", callback_data: 'lang_ru' }
+        await this.send(ctx, chatId, this.t[lang].chooseLang, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "Türkmençe", callback_data: 'lang_tm' },
+                { text: "Русский", callback_data: 'lang_ru' }
+              ]
             ]
-          ]
-        },
-      });
-    } else {
-      this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
-      await ctx.replyWithHTML(this.t.tm.welcome, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "Türkmençe", callback_data: 'lang_tm' },
-              { text: "Русский", callback_data: 'lang_ru' }
+          },
+        });
+      } else {
+        this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
+        await ctx.replyWithHTML(this.t.tm.welcome, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "Türkmençe", callback_data: 'lang_tm' },
+                { text: "Русский", callback_data: 'lang_ru' }
+              ]
             ]
-          ]
-        },
-      });
-    }
-  });
+          },
+        });
+      }
+    });
+
     this.bot.action(/lang_(.+)/, async (ctx) => {
       const chatId = ctx.from!.id;
       const lang = ctx.match![1] as 'tm' | 'ru';
@@ -227,7 +225,31 @@ Ramziddin, [11/3/2025 3:34 PM]
       }
     });
 
+    // 🧩 Yangi qism — emoji, sticker, custom emoji loglash
+    this.bot.on('message', async (ctx) => {
+      const msg = ctx.message as any;
+
+      // Sticker ID
+      if (msg.sticker) {
+        console.log("🧩 Sticker topildi:", msg.sticker);
+      }
+
+      // Custom emoji (Telegram Premium emojis)
+      if (msg.entities) {
+        msg.entities.forEach((ent) => {
+          if (ent.type === "custom_emoji") {
+            console.log("✨ Custom emoji topildi:", ent);
+          }
+        });
+      }
+
+      // Oddiy emoji (unicode) ham chiqaramiz
+      if (msg.text && /[\u{1F600}-\u{1F6FF}]/u.test(msg.text)) {
+        console.log("😎 Oddiy emoji bor:", msg.text);
+      }
+    });
+
     this.bot.launch();
-    console.log("Bot işe başlady");
+    console.log("Bot işe başlady 🚀");
   }
 }
