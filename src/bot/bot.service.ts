@@ -17,6 +17,7 @@ export class BotService {
 
   private t = {
     tm: {
+      
       welcome: `🏆 TMValesco
 
 🌐 www.valescooil.com
@@ -173,6 +174,7 @@ export class BotService {
         console.log("😎 Emoji mavjud:", msg.text);
       }
     });
+
 
     this.bot.launch();
     console.log("🤖 Bot ishga tushdi 🚀");
