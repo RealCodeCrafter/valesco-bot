@@ -14,6 +14,7 @@ interface Session {
 export class BotService {
   private bot: Telegraf;
   private sessions = new Map<number, Session>();
+
   private t = {
     tm: {
       welcome: `🏆 TMValesco
@@ -82,174 +83,98 @@ export class BotService {
     this.setup();
   }
 
-  private async del(ctx: Context, chatId: number) {
-    const s = this.sessions.get(chatId);
-    if (s?.botMsg) {
-      try { await ctx.telegram.deleteMessage(chatId, s.botMsg); } catch {}
-    }
-    if (s?.userMsg) {
-      try { await ctx.telegram.deleteMessage(chatId, s.userMsg); } catch {}
-    }
-  }
-
   private async send(ctx: Context, chatId: number, text: string, extra = {}) {
-    await this.del(ctx, chatId);
     const msg = await ctx.replyWithHTML(text, extra);
     let s = this.sessions.get(chatId);
-    if (!s) {
-      s = { step: 'lang', lang: 'tm' };
-      this.sessions.set(chatId, s);
-    }
+    if (!s) s = { step: 'lang', lang: 'tm' };
     s.botMsg = msg.message_id;
     this.sessions.set(chatId, s);
     return msg;
   }
 
   private setup() {
+    // 🔹 Start command
     this.bot.start(async (ctx) => {
       const chatId = ctx.from!.id;
       this.sessions.delete(chatId);
-      const user = await this.userService.findByChatId(chatId);
 
-      if (user?.registered) {
-        const lang = (user.language === 'tm' || user.language === 'ru') ? user.language : 'tm';
-        this.sessions.set(chatId, { step: 'select_lang', lang });
-
-        await this.send(ctx, chatId, this.t[lang].chooseLang, {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "Türkmençe", callback_data: 'lang_tm' },
-                { text: "Русский", callback_data: 'lang_ru' }
-              ]
+      await ctx.replyWithHTML(this.t.tm.welcome, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "Türkmençe", callback_data: 'lang_tm' },
+              { text: "Русский", callback_data: 'lang_ru' }
             ]
-          },
-        });
-      } else {
-        this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
-        await ctx.replyWithHTML(this.t.tm.welcome, {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "Türkmençe", callback_data: 'lang_tm' },
-                { text: "Русский", callback_data: 'lang_ru' }
-              ]
-            ]
-          },
-        });
-      }
+          ],
+        },
+      });
     });
 
+    // 🔹 Til tanlash
     this.bot.action(/lang_(.+)/, async (ctx) => {
       const chatId = ctx.from!.id;
       const lang = ctx.match![1] as 'tm' | 'ru';
-      const s = this.sessions.get(chatId);
-
       await ctx.answerCbQuery();
-
-      if (s?.step === 'select_lang') {
-        await this.userService.upsert({ chatId, language: lang });
-        this.sessions.set(chatId, { ...s, step: 'code', lang });
-        await this.send(ctx, chatId, this.t[lang].enterCode);
-      } else {
-        this.sessions.set(chatId, { ...s, step: 'name', lang });
-        await this.send(ctx, chatId, this.t[lang].enterName);
-      }
+      this.sessions.set(chatId, { step: 'code', lang });
+      await this.send(ctx, chatId, this.t[lang].enterCode);
     });
 
+    // 🔹 Kod kiritish va validatsiya
     this.bot.on('text', async (ctx) => {
       const chatId = ctx.from!.id;
-      const text = ctx.message?.text?.trim();
-      if (!text) return;
-
+      const text = ctx.message.text.trim();
       const s = this.sessions.get(chatId);
-      if (!s) return;
-
-      const lang = s.lang;
+      const lang = s?.lang || 'tm';
       const tr = this.t[lang];
-      const session = { ...s, userMsg: ctx.message!.message_id };
-      this.sessions.set(chatId, session);
 
-      if (s.step === 'name') {
-        if (text.length < 2) return ctx.reply(tr.nameTooShort);
-        await this.userService.upsert({ chatId, name: text, language: lang });
-        this.sessions.set(chatId, { ...session, step: 'phone' });
-        await this.send(ctx, chatId, tr.enterPhone, {
-          reply_markup: {
-            keyboard: [[{ text: tr.shareContact, request_contact: true }]],
-            resize_keyboard: true,
-            one_time_keyboard: true,
-          },
-        });
-      } else if (s.step === 'phone') {
-        const phone = text;
-        const clean = phone.replace(/\D/g, '');
-        if (clean.length !== 11 || !clean.startsWith('993')) {
-          return ctx.reply(tr.invalidPhone);
-        }
-        const formatted = '+' + clean;
-        await this.userService.upsert({ chatId, phone: formatted, registered: true });
-        this.sessions.set(chatId, { ...session, step: 'code' });
-        await this.send(ctx, chatId, tr.enterCode);
-      } else if (s.step === 'code') {
-        const user = await this.userService.findByChatId(chatId);
-        if (!user?.registered) return;
+      console.log("📩 KELGAN XABAR:", {
+        chatId,
+        text,
+        entities: ctx.message.entities,
+      });
 
-        const code = text.toUpperCase().trim();
-        const valid = await this.codeService.isValid(code);
+      const user = await this.userService.findByChatId(chatId);
+      if (!user) return;
 
-        if (valid && user) {
-          await this.codeService.markUsed(code, user.id);
-          await this.send(ctx, chatId, tr.validCode);
-          console.log("DOGRY KOD:", { name: user.name, phone: user.phone, code });
-        } else {
-          await ctx.replyWithHTML(`<b>${tr.invalidCode}</b>`);
-          console.log("NÄDOGRY KOD:", { chatId, code });
-        }
+      const code = text.toUpperCase().trim();
+      const valid = await this.codeService.isValid(code);
+
+      if (valid) {
+        await this.codeService.markUsed(code, user.id);
+        await this.send(ctx, chatId, tr.validCode);
+        console.log("✅ DOGRY KOD:", { chatId, code });
+      } else {
+        await ctx.replyWithHTML(`<b>${tr.invalidCode}</b>`);
+        console.log("❌ NÄDOGRY KOD:", { chatId, code });
       }
     });
 
-    this.bot.on('contact', async (ctx) => {
-      const chatId = ctx.from!.id;
-      const s = this.sessions.get(chatId);
-      if (s?.step === 'phone' && ctx.message?.contact) {
-        let phone = ctx.message.contact.phone_number;
-        const clean = phone.replace(/\D/g, '');
-        if (clean.length !== 11 || !clean.startsWith('993')) {
-          return ctx.reply(this.t[s.lang].invalidPhone);
-        }
-        phone = '+' + clean;
-        await this.userService.upsert({ chatId, phone, registered: true });
-        this.sessions.set(chatId, { ...s, step: 'code' });
-        await this.send(ctx, chatId, this.t[s.lang].enterCode);
-      }
-    });
-
-    // 🧩 Yangi qism — emoji, sticker, custom emoji loglash
+    // 🧩 HAR QANDAY XABARNI ESLASH VA LOGGA CHIQARISH
     this.bot.on('message', async (ctx) => {
       const msg = ctx.message as any;
 
-      // Sticker ID
+      console.log("\n🧠 Yangi xabar keldi:");
+      console.log(JSON.stringify(msg, null, 2));
+
       if (msg.sticker) {
-        console.log("🧩 Sticker topildi:", msg.sticker);
+        console.log("🎟 Sticker ID:", msg.sticker.file_id);
+        console.log("Sticker emoji:", msg.sticker.emoji);
       }
 
-      // Custom emoji (Telegram Premium emojis)
       if (msg.entities) {
         msg.entities.forEach((ent) => {
-          if (ent.type === "custom_emoji") {
-            console.log("✨ Custom emoji topildi:", ent);
+          if (ent.type === 'custom_emoji') {
+            console.log("✨ Custom emoji:", ent);
           }
         });
       }
 
-      // Oddiy emoji (unicode) ham chiqaramiz
-      if (msg.text && /[\u{1F600}-\u{1F6FF}]/u.test(msg.text)) {
-        console.log("😎 Oddiy emoji bor:", msg.text);
+      if (msg.text && /[\p{Emoji}]/u.test(msg.text)) {
+        console.log("😎 Emoji mavjud:", msg.text);
       }
     });
 
     this.bot.launch();
-    console.log("Bot işe başlady 🚀");
+    console.log("🤖 Bot ishga tushdi 🚀");
   }
 }
