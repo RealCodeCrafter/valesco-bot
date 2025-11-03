@@ -14,7 +14,7 @@ interface Session {
 export class BotService {
   private bot: Telegraf;
   private sessions = new Map<number, Session>();
-    t = {
+  private t = {
         tm: {
             welcome: `🏆 TMValesco
 
