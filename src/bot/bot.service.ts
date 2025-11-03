@@ -14,10 +14,8 @@ interface Session {
 export class BotService {
   private bot: Telegraf;
   private sessions = new Map<number, Session>();
-
   private t = {
     tm: {
-      
       welcome: `🏆 TMValesco
 
 🌐 www.valescooil.com
@@ -28,9 +26,6 @@ export class BotService {
       enterName: "✍️ Adyňyzy giriziň:",
       enterPhone: "📱 Telefon belgiňizi iberiň:",
       shareContact: "📲 Kontakt paýlaşmak",
-      enterCode: `🎉 Hormatly sarp ediji‼️
-✅ VALESCO LUBRICANTS brendiniň asyl önümini satyn alyp, siz 🎁 sowgatly aksiýada gatnaşýarsyňyz‼️
-🔢 STIKER KODYNY GIRIZIŇ:`,
       validCode: `✅ Hormatly sarp ediji‼️
 🎊 Siz VALESCO LUBRICANTS brendiniň asyl önümini satyn aldyňyz!
 🛍 Has köp VALESCO LUBRICANTS önümlerini satyn alyň we 🎁 sowgatly aksiýada gatnaşyň‼️
@@ -57,9 +52,6 @@ export class BotService {
       enterName: "✍️ Введите ваше имя:",
       enterPhone: "📱 Отправьте ваш номер телефона:",
       shareContact: "📲 Поделиться контактом",
-      enterCode: `🎉 Уважаемый потребитель‼️
-✅ Купив оригинальный продукт бренда VALESCO LUBRICANTS Вы становитесь участником 🎁 призовой акции‼️
-🔢 ВВЕДИТЕ КОД СО СТИКЕРА:`,
       validCode: `✅ Уважаемый потребитель‼️
 🎊 Вы приобрели оригинальный продукт бренда VALESCO LUBRICANTS!
 🛍 Покупайте больше продуктов брэнда VALESCO LUBRICANTS и участвуйте в 🎁 призовой акции‼️
@@ -84,99 +76,193 @@ export class BotService {
     this.setup();
   }
 
+  private async del(ctx: Context, chatId: number) {
+    const s = this.sessions.get(chatId);
+    if (s?.botMsg) {
+      try { await ctx.telegram.deleteMessage(chatId, s.botMsg); } catch {}
+    }
+    if (s?.userMsg) {
+      try { await ctx.telegram.deleteMessage(chatId, s.userMsg); } catch {}
+    }
+  }
+
   private async send(ctx: Context, chatId: number, text: string, extra = {}) {
+    await this.del(ctx, chatId);
     const msg = await ctx.replyWithHTML(text, extra);
     let s = this.sessions.get(chatId);
-    if (!s) s = { step: 'lang', lang: 'tm' };
+    if (!s) {
+      s = { step: 'lang', lang: 'tm' };
+      this.sessions.set(chatId, s);
+    }
     s.botMsg = msg.message_id;
     this.sessions.set(chatId, s);
     return msg;
   }
 
+  // 🔹 Qo‘zg‘aluvchi emojili xabar yuboruvchi funksiya
+  private async sendAnimatedText(ctx: Context, chatId: number, text: string) {
+    const msg = await ctx.telegram.sendMessage(chatId, text, {
+      entities: [
+        { offset: 0, length: 2, type: 'custom_emoji', custom_emoji_id: '5201979228303668332' },
+        { offset: 4, length: 2, type: 'custom_emoji', custom_emoji_id: '5206230361163445465' },
+        { offset: 6, length: 2, type: 'custom_emoji', custom_emoji_id: '5208576512818689138' },
+        { offset: 8, length: 2, type: 'custom_emoji', custom_emoji_id: '5206189266916357406' },
+        { offset: 10, length: 2, type: 'custom_emoji', custom_emoji_id: '5206211454717409052' },
+        { offset: 12, length: 2, type: 'custom_emoji', custom_emoji_id: '5206421092071126420' },
+        { offset: 14, length: 2, type: 'custom_emoji', custom_emoji_id: '5206720219363424618' },
+        { offset: 18, length: 2, type: 'custom_emoji', custom_emoji_id: '5462950031143216831' },
+        { offset: 42, length: 2, type: 'custom_emoji', custom_emoji_id: '5440660757194744323' },
+        { offset: 63, length: 1, type: 'custom_emoji', custom_emoji_id: '5427009714745517609' },
+        { offset: 80, length: 2, type: 'custom_emoji', custom_emoji_id: '5201921903375169816' },
+        { offset: 125, length: 2, type: 'custom_emoji', custom_emoji_id: '5436040291507247633' },
+        { offset: 133, length: 2, type: 'custom_emoji', custom_emoji_id: '5440660757194744323' },
+        { offset: 137, length: 2, type: 'custom_emoji', custom_emoji_id: '5406809207947142040' },
+      ],
+    });
+    return msg;
+  }
+
   private setup() {
-    // 🔹 Start command
     this.bot.start(async (ctx) => {
       const chatId = ctx.from!.id;
       this.sessions.delete(chatId);
+      const user = await this.userService.findByChatId(chatId);
 
-      await ctx.replyWithHTML(this.t.tm.welcome, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "Türkmençe", callback_data: 'lang_tm' },
-              { text: "Русский", callback_data: 'lang_ru' }
+      if (user?.registered) {
+        const lang = (user.language === 'tm' || user.language === 'ru') ? user.language : 'tm';
+        this.sessions.set(chatId, { step: 'select_lang', lang });
+
+        await this.send(ctx, chatId, this.t[lang].chooseLang, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "Türkmençe", callback_data: 'lang_tm' },
+                { text: "Русский", callback_data: 'lang_ru' }
+              ]
             ]
-          ],
-        },
-      });
+          },
+        });
+      } else {
+        this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
+        await ctx.replyWithHTML(this.t.tm.welcome, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "Türkmençe", callback_data: 'lang_tm' },
+                { text: "Русский", callback_data: 'lang_ru' }
+              ]
+            ]
+          },
+        });
+      }
     });
 
-    // 🔹 Til tanlash
     this.bot.action(/lang_(.+)/, async (ctx) => {
       const chatId = ctx.from!.id;
       const lang = ctx.match![1] as 'tm' | 'ru';
+      const s = this.sessions.get(chatId);
+
       await ctx.answerCbQuery();
-      this.sessions.set(chatId, { step: 'code', lang });
-      await this.send(ctx, chatId, this.t[lang].enterCode);
+
+      if (s?.step === 'select_lang') {
+        await this.userService.upsert({ chatId, language: lang });
+        this.sessions.set(chatId, { ...s, step: 'code', lang });
+
+        // 🔹 Animatsiyali enterCode xabar
+        const animText =
+          lang === 'tm'
+            ? `😎  😎😎😎😎😎😎\n\n📣 Hormatly sarp ediji‼️\n😎 VALESCO LUBRICANTS\n✅ Brendiň asyl önümini satyn alyp, siz 🎉 sowgatly aksiýada gatnaşýarsyňyz‼️\n\n📲 STIKER KODYNY GIRIZIŇ`
+            : `😎  😎😎😎😎😎😎\n\n📣 Уважаемый потребитель‼️\n😎 VALESCO LUBRICANTS\n✅ Купив оригинальный продукт бренда, Вы становитесь участником 🎉 призовой акции‼️\n\n📲 ВВЕДИТЕ КОД СО СТИКЕРА`;
+
+        await this.sendAnimatedText(ctx, chatId, animText);
+      } else {
+        this.sessions.set(chatId, { ...s, step: 'name', lang });
+        await this.send(ctx, chatId, this.t[lang].enterName);
+      }
     });
 
-    // 🔹 Kod kiritish va validatsiya
     this.bot.on('text', async (ctx) => {
       const chatId = ctx.from!.id;
-      const text = ctx.message.text.trim();
+      const text = ctx.message?.text?.trim();
+      if (!text) return;
+
       const s = this.sessions.get(chatId);
-      const lang = s?.lang || 'tm';
+      if (!s) return;
+
+      const lang = s.lang;
       const tr = this.t[lang];
+      const session = { ...s, userMsg: ctx.message!.message_id };
+      this.sessions.set(chatId, session);
 
-      console.log("📩 KELGAN XABAR:", {
-        chatId,
-        text,
-        entities: ctx.message.entities,
-      });
-
-      const user = await this.userService.findByChatId(chatId);
-      if (!user) return;
-
-      const code = text.toUpperCase().trim();
-      const valid = await this.codeService.isValid(code);
-
-      if (valid) {
-        await this.codeService.markUsed(code, user.id);
-        await this.send(ctx, chatId, tr.validCode);
-        console.log("✅ DOGRY KOD:", { chatId, code });
-      } else {
-        await ctx.replyWithHTML(`<b>${tr.invalidCode}</b>`);
-        console.log("❌ NÄDOGRY KOD:", { chatId, code });
-      }
-    });
-
-    // 🧩 HAR QANDAY XABARNI ESLASH VA LOGGA CHIQARISH
-    this.bot.on('message', async (ctx) => {
-      const msg = ctx.message as any;
-
-      console.log("\n🧠 Yangi xabar keldi:");
-      console.log(JSON.stringify(msg, null, 2));
-
-      if (msg.sticker) {
-        console.log("🎟 Sticker ID:", msg.sticker.file_id);
-        console.log("Sticker emoji:", msg.sticker.emoji);
-      }
-
-      if (msg.entities) {
-        msg.entities.forEach((ent) => {
-          if (ent.type === 'custom_emoji') {
-            console.log("✨ Custom emoji:", ent);
-          }
+      if (s.step === 'name') {
+        if (text.length < 2) return ctx.reply(tr.nameTooShort);
+        await this.userService.upsert({ chatId, name: text, language: lang });
+        this.sessions.set(chatId, { ...session, step: 'phone' });
+        await this.send(ctx, chatId, tr.enterPhone, {
+          reply_markup: {
+            keyboard: [[{ text: tr.shareContact, request_contact: true }]],
+            resize_keyboard: true,
+            one_time_keyboard: true,
+          },
         });
-      }
+      } else if (s.step === 'phone') {
+        const phone = text;
+        const clean = phone.replace(/\D/g, '');
+        if (clean.length !== 11 || !clean.startsWith('993')) {
+          return ctx.reply(tr.invalidPhone);
+        }
+        const formatted = '+' + clean;
+        await this.userService.upsert({ chatId, phone: formatted, registered: true });
+        this.sessions.set(chatId, { ...session, step: 'code' });
 
-      if (msg.text && /[\p{Emoji}]/u.test(msg.text)) {
-        console.log("😎 Emoji mavjud:", msg.text);
+        // 🔹 EnterCode bosqichida animatsiyali text
+        const animText =
+          lang === 'tm'
+            ? `😎  😎😎😎😎😎😎\n\n📣 Hormatly sarp ediji‼️\n😎 VALESCO LUBRICANTS\n✅ Brendiň asyl önümini satyn alyp, siz 🎉 sowgatly aksiýada gatnaşýarsyňyz‼️\n\n📲 STIKER KODYNY GIRIZIŇ`
+            : `😎  😎😎😎😎😎😎\n\n📣 Уважаемый потребитель‼️\n😎 VALESCO LUBRICANTS\n✅ Купив оригинальный продукт бренда, Вы становитесь участником 🎉 призовой акции‼️\n\n📲 ВВЕДИТЕ КОД СО СТИКЕРА`;
+
+        await this.sendAnimatedText(ctx, chatId, animText);
+      } else if (s.step === 'code') {
+        const user = await this.userService.findByChatId(chatId);
+        if (!user?.registered) return;
+
+        const code = text.toUpperCase().trim();
+        const valid = await this.codeService.isValid(code);
+
+        if (valid && user) {
+          await this.codeService.markUsed(code, user.id);
+          await this.send(ctx, chatId, tr.validCode);
+          console.log("DOGRY KOD:", { name: user.name, phone: user.phone, code });
+        } else {
+          await ctx.replyWithHTML(`<b>${tr.invalidCode}</b>`);
+          console.log("NÄDOGRY KOD:", { chatId, code });
+        }
       }
     });
 
+    this.bot.on('contact', async (ctx) => {
+      const chatId = ctx.from!.id;
+      const s = this.sessions.get(chatId);
+      if (s?.step === 'phone' && ctx.message?.contact) {
+        let phone = ctx.message.contact.phone_number;
+        const clean = phone.replace(/\D/g, '');
+        if (clean.length !== 11 || !clean.startsWith('993')) {
+          return ctx.reply(this.t[s.lang].invalidPhone);
+        }
+        phone = '+' + clean;
+        await this.userService.upsert({ chatId, phone, registered: true });
+        this.sessions.set(chatId, { ...s, step: 'code' });
+
+        const animText =
+          s.lang === 'tm'
+            ? `😎  😎😎😎😎😎😎\n\n📣 Hormatly sarp ediji‼️\n😎 VALESCO LUBRICANTS\n✅ Brendiň asyl önümini satyn alyp, siz 🎉 sowgatly aksiýada gatnaşýarsyňyz‼️\n\n📲 STIKER KODYNY GIRIZIŇ`
+            : `😎  😎😎😎😎😎😎\n\n📣 Уважаемый потребитель‼️\n😎 VALESCO LUBRICANTS\n✅ Купив оригинальный продукт бренда, Вы становитесь участником 🎉 призовой акции‼️\n\n📲 ВВЕДИТЕ КОД СО СТИКЕРА`;
+
+        await this.sendAnimatedText(ctx, chatId, animText);
+      }
+    });
 
     this.bot.launch();
-    console.log("🤖 Bot ishga tushdi 🚀");
+    console.log("Bot işe başlady");
   }
 }
