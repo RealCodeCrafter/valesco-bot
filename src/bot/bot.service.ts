@@ -89,15 +89,14 @@ export class BotService {
   }
 
   private setup() {
-    // /start komandasi
     this.bot.start(async (ctx) => {
       const chatId = ctx.from!.id;
       this.sessions.delete(chatId);
 
       this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
       const text = `
-🌍 <b>Dili saýlaň</b>
-🌍 <b>Выберите язык</b>
+Dili saýlaň
+Выберите язык
 `;
 
       await this.send(ctx, chatId, text, {
