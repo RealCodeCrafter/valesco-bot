@@ -16,12 +16,6 @@ export class BotService {
   private sessions = new Map<number, Session>();
   private t = {
     tm: {
-      welcome: `🏆 TMValesco
-
-🌐 www.valescooil.com
-📞 +99363883444
-
-👋 Salam! Dili saýlaň:`,
       chooseLang: "🌍 Dili saýlaň:",
       enterName: "✍️ Adyňyzy giriziň:",
       enterPhone: "📱 Telefon belgiňizi iberiň:",
@@ -31,8 +25,8 @@ export class BotService {
 🔢 STIKER KODYNY GIRIZIŇ:`,
       validCode: `✅ Hormatly sarp ediji‼️
 🎊 Siz VALESCO LUBRICANTS brendiniň asyl önümini satyn aldyňyz!
-🛍 Has köp VALESCO LUBRICANTS önümlerini satyn alyň we 🎁 sowgatly aksiýada gatnaşyň‼️
-ℹ️ Önüm hakda has giňişleýin maglumat almak üçin web sahypamyza giriň 👉 http://www.valescooil.com
+🛍 Has köp VALESCO LUBRICANTS önümlerini satyn alyň we 🎁 sowgatly aksiýada gatnaşýarsyňyz‼️
+ℹ️ Önüm hakda giňişleýin maglumat almak üçin 👉 http://www.valescooil.com
 🤝 Saýlanyňyz üçin sag boluň!`,
       invalidCode: `⚠️ Hormatly sarp ediji
 ❌ KOD NÄDOGRY! ❌
@@ -44,12 +38,6 @@ export class BotService {
       nameTooShort: "⚠️ At gaty gysga",
     },
     ru: {
-      welcome: `🏆 TMValesco
-
-🌐 www.valescooil.com
-📞 +99363883444
-
-👋 Здравствуйте! Выберите язык:`,
       chooseLang: "🌍 Выберите язык:",
       enterName: "✍️ Введите ваше имя:",
       enterPhone: "📱 Отправьте ваш номер телефона:",
@@ -60,7 +48,7 @@ export class BotService {
       validCode: `✅ Уважаемый потребитель‼️
 🎊 Вы приобрели оригинальный продукт бренда VALESCO LUBRICANTS!
 🛍 Покупайте больше продуктов брэнда VALESCO LUBRICANTS и участвуйте в 🎁 призовой акции‼️
-ℹ️ Для большей информации о продукции зайдите на наш сайт 👉 http://www.valescooil.com
+ℹ️ Для большей информации о продукции зайдите 👉 http://www.valescooil.com
 🤝 Благодарим за выбор!`,
       invalidCode: `⚠️ Уважаемый потребитель
 ❌ КОД НЕ ЯВЛЯЕТСЯ ДЕЙСТВИТЕЛЬНЫМ! ❌
@@ -107,32 +95,20 @@ export class BotService {
       this.sessions.delete(chatId);
       const user = await this.userService.findByChatId(chatId);
 
-      if (user?.registered) {
-        const lang = user.language === 'ru' ? 'ru' : 'tm';
-        this.sessions.set(chatId, { step: 'select_lang', lang });
-        await this.send(ctx, chatId, this.t[lang].chooseLang, {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "Türkmençe", callback_data: 'lang_tm' },
-                { text: "Русский", callback_data: 'lang_ru' }
-              ]
+      // faqat til tanlashni ko‘rsatamiz
+      const lang = user?.language === 'ru' ? 'ru' : 'tm';
+      this.sessions.set(chatId, { step: 'lang', lang });
+
+      await this.send(ctx, chatId, this.t[lang].chooseLang, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "Türkmençe", callback_data: 'lang_tm' },
+              { text: "Русский", callback_data: 'lang_ru' }
             ]
-          },
-        });
-      } else {
-        this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
-        await ctx.replyWithHTML(this.t.tm.welcome, {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "Türkmençe", callback_data: 'lang_tm' },
-                { text: "Русский", callback_data: 'lang_ru' }
-              ]
-            ]
-          },
-        });
-      }
+          ]
+        },
+      });
     });
 
     this.bot.action(/lang_(.+)/, async (ctx) => {
@@ -141,14 +117,8 @@ export class BotService {
       const s = this.sessions.get(chatId);
       await ctx.answerCbQuery();
 
-      if (s?.step === 'select_lang') {
-        await this.userService.upsert({ chatId, language: lang });
-        this.sessions.set(chatId, { ...s, step: 'code', lang });
-        await this.send(ctx, chatId, this.t[lang].enterCode);
-      } else {
-        this.sessions.set(chatId, { ...s, step: 'name', lang });
-        await this.send(ctx, chatId, this.t[lang].enterName);
-      }
+      this.sessions.set(chatId, { ...s, step: 'name', lang });
+      await this.send(ctx, chatId, this.t[lang].enterName);
     });
 
     this.bot.on('text', async (ctx) => {
@@ -187,10 +157,8 @@ export class BotService {
         const valid = await this.codeService.isValid(code);
         if (valid && user) {
           await this.codeService.markUsed(code, user.id);
-
-          // ⚠️ E’tibor: bu joyda biz xabarni o‘chirmaymiz, shunchaki yangi xabar yuboramiz
+          // ⚠️ Kodni o‘chirmaymiz
           await ctx.replyWithHTML(tr.validCode);
-
           console.log("✅ TO‘G‘RI KOD:", { name: user.name, phone: user.phone, code });
         } else {
           await ctx.replyWithHTML(`<b>${tr.invalidCode}</b>`);
