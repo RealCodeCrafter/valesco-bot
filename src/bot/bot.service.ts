@@ -95,13 +95,10 @@ export class BotService {
       this.sessions.delete(chatId);
 
       this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
-
       const text = `
-🌍 <b>Dili saýlaň / Выберите язык</b>
-
-🇹🇲 Türkmençe
-🇷🇺 Русский
-      `;
+🌍 <b>Dili saýlaň</b>
+🌍 <b>Выберите язык</b>
+`;
 
       await this.send(ctx, chatId, text, {
         reply_markup: {
@@ -115,7 +112,6 @@ export class BotService {
       });
     });
 
-    // Til tanlash
     this.bot.action(/lang_(.+)/, async (ctx) => {
       const chatId = ctx.from!.id;
       const lang = ctx.match![1] as 'tm' | 'ru';
