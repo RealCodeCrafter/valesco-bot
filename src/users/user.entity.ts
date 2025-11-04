@@ -12,10 +12,7 @@ export class User {
   @Column()
   name: string;
 
-  @Column({nullable: true})
-  surname: string;
-
-  @Column({nullable: true})
+  @Column({ nullable: true })
   phone: string;
 
   @Column({ default: 'uz' })
