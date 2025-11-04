@@ -15,7 +15,7 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
-  @Column({ default: 'uz' })
+  @Column({ default: 'ru' })
   language: string;
 
   @Column({ default: false })

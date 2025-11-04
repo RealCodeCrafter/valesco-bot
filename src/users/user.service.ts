@@ -40,6 +40,12 @@ export class UserService {
       'user.language',
     ])
     .getMany();
+
+
+}
+
+async updateLanguage(chatId: number, lang: 'tm' | 'ru') {
+  await this.repo.update({ chatId }, { language: lang });
 }
 
   async remove(id: number): Promise<void> {

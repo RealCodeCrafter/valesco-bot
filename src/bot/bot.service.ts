@@ -110,20 +110,21 @@ Dili saýlaň
       });
     });
 
-    this.bot.action(/lang_(.+)/, async (ctx) => {
-      const chatId = ctx.from!.id;
-      const lang = ctx.match![1] as 'tm' | 'ru';
-      await ctx.answerCbQuery();
-      const user = await this.userService.findByChatId(chatId);
-      await this.userService.upsert({ chatId, language: lang });
-      if (user && user.registered) {
-        this.sessions.set(chatId, { step: 'code', lang });
-        await this.send(ctx, chatId, this.t[lang].enterCode);
-      } else {
-        this.sessions.set(chatId, { step: 'name', lang });
-        await this.send(ctx, chatId, this.t[lang].enterName);
-      }
-    });
+this.bot.action(/lang_(.+)/, async (ctx) => {
+  const chatId = ctx.from!.id;
+  const lang = ctx.match![1] as 'tm' | 'ru';
+  await ctx.answerCbQuery();
+  const user = await this.userService.findByChatId(chatId);
+
+  if (user) {
+    await this.userService.updateLanguage(chatId, lang);
+    this.sessions.set(chatId, { step: 'code', lang });
+    await this.send(ctx, chatId, this.t[lang].enterCode);
+  } else {
+    this.sessions.set(chatId, { step: 'name', lang });
+    await this.send(ctx, chatId, this.t[lang].enterName);
+  }
+});
 
     this.bot.on('text', async (ctx) => {
       const chatId = ctx.from!.id;
