@@ -4,7 +4,7 @@ import { UserService } from '../users/user.service';
 import { CodeService } from '../codes/code.service';
 
 interface Session {
-  step: 'lang' | 'select_lang' | 'name' | 'phone' | 'code';
+  step: 'lang' | 'name' | 'phone' | 'code';
   lang: 'tm' | 'ru';
   botMsg?: number;
   userMsg?: number;
@@ -14,9 +14,9 @@ interface Session {
 export class BotService {
   private bot: Telegraf;
   private sessions = new Map<number, Session>();
+
   private t = {
     tm: {
-      chooseLang: "🌍 Dili saýlaň:",
       enterName: "✍️ Adyňyzy giriziň:",
       enterPhone: "📱 Telefon belgiňizi iberiň:",
       shareContact: "📲 Kontakt paýlaşmak",
@@ -38,7 +38,6 @@ export class BotService {
       nameTooShort: "⚠️ At gaty gysga",
     },
     ru: {
-      chooseLang: "🌍 Выберите язык:",
       enterName: "✍️ Введите ваше имя:",
       enterPhone: "📱 Отправьте ваш номер телефона:",
       shareContact: "📲 Поделиться контактом",
@@ -47,7 +46,7 @@ export class BotService {
 🔢 ВВЕДИТЕ КОД СО СТИКЕРА:`,
       validCode: `✅ Уважаемый потребитель‼️
 🎊 Вы приобрели оригинальный продукт бренда VALESCO LUBRICANTS!
-🛍 Покупайте больше продуктов брэнда VALESCO LUBRICANTS и участвуйте в 🎁 призовой акции‼️
+🛍 Покупайте больше продуктов бренда VALESCO LUBRICANTS и участвуйте в 🎁 призовой акции‼️
 ℹ️ Для большей информации о продукции зайдите 👉 http://www.valescooil.com
 🤝 Благодарим за выбор!`,
       invalidCode: `⚠️ Уважаемый потребитель
@@ -90,43 +89,51 @@ export class BotService {
   }
 
   private setup() {
+    // /start komandasi
     this.bot.start(async (ctx) => {
       const chatId = ctx.from!.id;
       this.sessions.delete(chatId);
-      const user = await this.userService.findByChatId(chatId);
 
-      // faqat til tanlashni ko‘rsatamiz
-      const lang = user?.language === 'ru' ? 'ru' : 'tm';
-      this.sessions.set(chatId, { step: 'lang', lang });
+      this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
 
-      await this.send(ctx, chatId, this.t[lang].chooseLang, {
+      const text = `
+🌍 <b>Dili saýlaň / Выберите язык</b>
+
+🇹🇲 Türkmençe
+🇷🇺 Русский
+      `;
+
+      await this.send(ctx, chatId, text, {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: "Türkmençe", callback_data: 'lang_tm' },
-              { text: "Русский", callback_data: 'lang_ru' }
+              { text: "🇹🇲 Türkmençe", callback_data: 'lang_tm' },
+              { text: "🇷🇺 Русский", callback_data: 'lang_ru' }
             ]
           ]
         },
       });
     });
 
+    // Til tanlash
     this.bot.action(/lang_(.+)/, async (ctx) => {
       const chatId = ctx.from!.id;
       const lang = ctx.match![1] as 'tm' | 'ru';
-      const s = this.sessions.get(chatId);
       await ctx.answerCbQuery();
-
+      const s = this.sessions.get(chatId) || { step: 'lang', lang };
       this.sessions.set(chatId, { ...s, step: 'name', lang });
       await this.send(ctx, chatId, this.t[lang].enterName);
     });
 
+    // Text xabarlar
     this.bot.on('text', async (ctx) => {
       const chatId = ctx.from!.id;
       const text = ctx.message?.text?.trim();
       if (!text) return;
+
       const s = this.sessions.get(chatId);
       if (!s) return;
+
       const lang = s.lang;
       const tr = this.t[lang];
       const session = { ...s, userMsg: ctx.message!.message_id };
@@ -157,16 +164,16 @@ export class BotService {
         const valid = await this.codeService.isValid(code);
         if (valid && user) {
           await this.codeService.markUsed(code, user.id);
-          // ⚠️ Kodni o‘chirmaymiz
           await ctx.replyWithHTML(tr.validCode);
           console.log("✅ TO‘G‘RI KOD:", { name: user.name, phone: user.phone, code });
         } else {
-          await ctx.replyWithHTML(`<b>${tr.invalidCode}</b>`);
+          await ctx.replyWithHTML(tr.invalidCode);
           console.log("❌ NOTO‘G‘RI KOD:", { chatId, code });
         }
       }
     });
 
+    // Kontakt yuborilganda
     this.bot.on('contact', async (ctx) => {
       const chatId = ctx.from!.id;
       const s = this.sessions.get(chatId);
