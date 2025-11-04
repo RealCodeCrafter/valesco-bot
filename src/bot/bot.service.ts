@@ -99,9 +99,8 @@ export class BotService {
       this.sessions.set(chatId, { step: 'lang', lang });
 
       const text = `
-🌍 <b>Dili saýlaň</b>
-
-🌍 <b>Выберите язык</b>
+Dili saýlaň
+Выберите язык
 `;
 
       await this.send(ctx, chatId, text, {
