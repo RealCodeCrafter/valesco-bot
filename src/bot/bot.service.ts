@@ -4,7 +4,7 @@ import { UserService } from '../users/user.service';
 import { CodeService } from '../codes/code.service';
 
 interface Session {
-  step: 'lang' | 'select_lang' | 'name' | 'phone' | 'code';
+  step: 'lang' | 'select_lang' | 'name' | 'surname' | 'phone' | 'code';
   lang: 'tm' | 'ru';
   botMsg?: number;
   userMsg?: number;
@@ -24,6 +24,7 @@ export class BotService {
 👋 Salam! Dili saýlaň:`,
       chooseLang: "🌍 Dili saýlaň:",
       enterName: "✍️ Adyňyzy giriziň:",
+      enterSurname: "🧾 Familiýaňyzy giriziň:",
       enterPhone: "📱 Telefon belgiňizi iberiň:",
       shareContact: "📲 Kontakt paýlaşmak",
       enterCode: `🎉 Hormatly sarp ediji‼️
@@ -42,6 +43,7 @@ export class BotService {
 🔄 Kody ýene bir gezek giriziň:`,
       invalidPhone: "❌ Telefon nädogry. Rakam giriziň",
       nameTooShort: "⚠️ At gaty gysga",
+      surnameTooShort: "⚠️ Familiýa gaty gysga",
     },
     ru: {
       welcome: `🏆 TMValesco
@@ -52,6 +54,7 @@ export class BotService {
 👋 Здравствуйте! Выберите язык:`,
       chooseLang: "🌍 Выберите язык:",
       enterName: "✍️ Введите ваше имя:",
+      enterSurname: "🧾 Введите вашу фамилию:",
       enterPhone: "📱 Отправьте ваш номер телефона:",
       shareContact: "📲 Поделиться контактом",
       enterCode: `🎉 Уважаемый потребитель‼️
@@ -70,6 +73,7 @@ export class BotService {
 🔄 Введите код еще раз:`,
       invalidPhone: "❌ Неверный номер телефона. Введите только цифры",
       nameTooShort: "⚠️ Имя слишком короткое",
+      surnameTooShort: "⚠️ Фамилия слишком короткая",
     },
   };
 
@@ -168,6 +172,11 @@ export class BotService {
       if (s.step === 'name') {
         if (text.length < 2) return ctx.reply(tr.nameTooShort);
         await this.userService.upsert({ chatId, name: text, language: lang });
+        this.sessions.set(chatId, { ...session, step: 'surname' });
+        await this.send(ctx, chatId, tr.enterSurname);
+      } else if (s.step === 'surname') {
+        if (text.length < 2) return ctx.reply(tr.surnameTooShort);
+        await this.userService.upsert({ chatId, surname: text });
         this.sessions.set(chatId, { ...session, step: 'phone' });
         await this.send(ctx, chatId, tr.enterPhone, {
           reply_markup: {
@@ -193,7 +202,7 @@ export class BotService {
         if (valid && user) {
           await this.codeService.markUsed(code, user.id);
           await this.send(ctx, chatId, tr.validCode);
-          console.log("DOGRY KOD:", { name: user.name, phone: user.phone, code });
+          console.log("DOGRY KOD:", { name: user.name, surname: user.surname, phone: user.phone, code });
         } else {
           await ctx.replyWithHTML(`<b>${tr.invalidCode}</b>`);
           console.log("NÄDOGRY KOD:", { chatId, code });

@@ -12,6 +12,9 @@ export class Code {
   @Column({ default: false })
   used: boolean;
 
-  @ManyToOne(() => User, user => user.codes, { nullable: true })
+  @ManyToOne(() => User, (user) => user.codes, { 
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
   user: User;
 }
