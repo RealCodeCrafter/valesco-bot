@@ -4,7 +4,7 @@ import { UserService } from '../users/user.service';
 import { CodeService } from '../codes/code.service';
 
 interface Session {
-  step: 'lang' | 'name' | 'phone' | 'code';
+  step: 'lang' | 'name' | 'phone' | 'code' | 'done';
   lang: 'tm' | 'ru';
   botMsg?: number;
   userMsg?: number;
@@ -36,6 +36,7 @@ export class BotService {
 🔄 Kody ýene bir gezek giriziň:`,
       invalidPhone: "❌ Telefon nädogry. Rakam giriziň",
       nameTooShort: "⚠️ At gaty gysga",
+      alreadyRegistered: "✅ Siz öň roýatdan geçdiňiz! Kod giriziň:",
     },
     ru: {
       enterName: "✍️ Введите ваше имя:",
@@ -57,6 +58,7 @@ export class BotService {
 🔄 Введите код еще раз:`,
       invalidPhone: "❌ Неверный номер телефона. Введите только цифры",
       nameTooShort: "⚠️ Имя слишком короткое",
+      alreadyRegistered: "✅ Вы уже зарегистрированы! Введите код:",
     },
   };
 
@@ -91,12 +93,15 @@ export class BotService {
   private setup() {
     this.bot.start(async (ctx) => {
       const chatId = ctx.from!.id;
-      this.sessions.delete(chatId);
 
-      this.sessions.set(chatId, { step: 'lang', lang: 'tm' });
+      const user = await this.userService.findByChatId(chatId);
+      const lang = user?.language === 'ru' ? 'ru' : 'tm';
+      this.sessions.set(chatId, { step: 'lang', lang });
+
       const text = `
-Dili saýlaň
-Выберите язык
+🌍 <b>Dili saýlaň</b>
+
+🌍 <b>Выберите язык</b>
 `;
 
       await this.send(ctx, chatId, text, {
@@ -104,9 +109,9 @@ Dili saýlaň
           inline_keyboard: [
             [
               { text: "🇹🇲 Türkmençe", callback_data: 'lang_tm' },
-              { text: "🇷🇺 Русский", callback_data: 'lang_ru' }
-            ]
-          ]
+              { text: "🇷🇺 Русский", callback_data: 'lang_ru' },
+            ],
+          ],
         },
       });
     });
@@ -115,12 +120,20 @@ Dili saýlaň
       const chatId = ctx.from!.id;
       const lang = ctx.match![1] as 'tm' | 'ru';
       await ctx.answerCbQuery();
-      const s = this.sessions.get(chatId) || { step: 'lang', lang };
-      this.sessions.set(chatId, { ...s, step: 'name', lang });
-      await this.send(ctx, chatId, this.t[lang].enterName);
+
+      const user = await this.userService.findByChatId(chatId);
+
+      if (user && user.registered) {
+        await this.userService.upsert({ chatId, language: lang });
+        this.sessions.set(chatId, { step: 'done', lang });
+        await this.send(ctx, chatId, this.t[lang].alreadyRegistered);
+      } else {
+        this.sessions.set(chatId, { step: 'name', lang });
+        await this.send(ctx, chatId, this.t[lang].enterName);
+      }
     });
 
-    // Text xabarlar
+    // Matnli xabarlar
     this.bot.on('text', async (ctx) => {
       const chatId = ctx.from!.id;
       const text = ctx.message?.text?.trim();
@@ -133,6 +146,20 @@ Dili saýlaň
       const tr = this.t[lang];
       const session = { ...s, userMsg: ctx.message!.message_id };
       this.sessions.set(chatId, session);
+
+      if (s.step === 'done') {
+        const code = text.toUpperCase().trim();
+        const user = await this.userService.findByChatId(chatId);
+        if (!user) return;
+        const valid = await this.codeService.isValid(code);
+        if (valid) {
+          await this.codeService.markUsed(code, user.id);
+          await ctx.replyWithHTML(tr.validCode);
+        } else {
+          await ctx.replyWithHTML(tr.invalidCode);
+        }
+        return;
+      }
 
       if (s.step === 'name') {
         if (text.length < 2) return ctx.reply(tr.nameTooShort);
@@ -157,13 +184,11 @@ Dili saýlaň
         if (!user?.registered) return;
         const code = text.toUpperCase().trim();
         const valid = await this.codeService.isValid(code);
-        if (valid && user) {
+        if (valid) {
           await this.codeService.markUsed(code, user.id);
           await ctx.replyWithHTML(tr.validCode);
-          console.log("✅ TO‘G‘RI KOD:", { name: user.name, phone: user.phone, code });
         } else {
           await ctx.replyWithHTML(tr.invalidCode);
-          console.log("❌ NOTO‘G‘RI KOD:", { chatId, code });
         }
       }
     });
