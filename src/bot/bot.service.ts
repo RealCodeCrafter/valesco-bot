@@ -87,45 +87,45 @@ export class BotService {
     this.sessions.set(chatId, s);
     return msg;
   }
+private setup() {
+  this.bot.start(async (ctx) => {
+    const chatId = ctx.from!.id;
+    const user = await this.userService.findByChatId(chatId);
+    this.sessions.delete(chatId);
+    this.sessions.set(chatId, { step: 'lang', lang: (user?.language === 'tm' ? 'tm' : 'ru') });
 
-  private setup() {
-    this.bot.start(async (ctx) => {
-      const chatId = ctx.from!.id;
-      const user = await this.userService.findByChatId(chatId);
-      this.sessions.delete(chatId);
-     this.sessions.set(chatId, { step: 'lang', lang: (user?.language === 'tm' ? 'tm' : 'ru') });
-      const text = `
+    const text = `
 Dili saýlaň
 Выберите язык
 `;
-      await this.send(ctx, chatId, text, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "🇹🇲 Türkmençe", callback_data: 'lang_tm' },
-              { text: "🇷🇺 Русский", callback_data: 'lang_ru' }
-            ]
-          ]
-        },
-      });
+
+    await this.send(ctx, chatId, text, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🇹🇲 Türkmençe", callback_data: 'lang_tm' }],
+          [{ text: "🇷🇺 Русский", callback_data: 'lang_ru' }]
+        ]
+      },
     });
+  });
 
-this.bot.action(/lang_(.+)/, async (ctx) => {
-  const chatId = ctx.from!.id;
-  const lang = ctx.match![1] as 'tm' | 'ru';
-  await ctx.answerCbQuery();
-  const user = await this.userService.findByChatId(chatId);
+  this.bot.action(/lang_(.+)/, async (ctx) => {
+    const chatId = ctx.from!.id;
+    const lang = ctx.match![1] as 'tm' | 'ru';
+    await ctx.answerCbQuery();
+    const user = await this.userService.findByChatId(chatId);
 
-  if (user) {
-    await this.userService.updateLanguage(chatId, lang);
-    this.sessions.set(chatId, { step: 'code', lang });
-    await this.send(ctx, chatId, this.t[lang].enterCode);
-  } else {
-    this.sessions.set(chatId, { step: 'name', lang });
-    await this.send(ctx, chatId, this.t[lang].enterName);
-  }
-});
+    if (user) {
+      await this.userService.updateLanguage(chatId, lang);
+      this.sessions.set(chatId, { step: 'code', lang });
+      await this.send(ctx, chatId, this.t[lang].enterCode);
+    } else {
+      this.sessions.set(chatId, { step: 'name', lang });
+      await this.send(ctx, chatId, this.t[lang].enterName);
+    }
+  });
 
+  
     this.bot.on('text', async (ctx) => {
       const chatId = ctx.from!.id;
       const text = ctx.message?.text?.trim();
